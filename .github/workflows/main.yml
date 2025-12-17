@@ -1,0 +1,41 @@
+name: Python App CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS OIDC Login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Image
+        run: docker build -t python-frontend .
+
+      - name: Push Image
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}
+          docker tag python-frontend:latest $ECR_URI:latest
+          docker push $ECR_URI:latest
+
+      - name: Run Container
+        run: |
+          docker stop python-frontend || true
+          docker rm python-frontend || true
+          docker run -d -p 80:5000 --name python-frontend $ECR_URI:latest
