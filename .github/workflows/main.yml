@@ -36,6 +36,6 @@ jobs:
 
       - name: Run Container
         run: |
-          docker stop python-frontend || true
-          docker rm python-frontend || true
+          # docker stop python-frontend || true
+          # docker rm python-frontend || true
           docker run -d -p 80:5000 --name python-frontend $ECR_URI:latest
