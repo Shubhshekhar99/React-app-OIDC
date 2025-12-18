@@ -1,11 +1,11 @@
-FROM python:3.9 AS builder
-WORKDIR /install
-COPY requirements.txt .
-RUN pip install --target=/install --no-cache-dir -r requirements.txt
+FROM python:3.11
 
-FROM python:3.9-slim
 WORKDIR /app
-COPY --from=builder /install /usr/local
-COPY app.py .
-EXPOSE 5000
+
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
+
+COPY . .
+
 CMD ["python", "app.py"]
