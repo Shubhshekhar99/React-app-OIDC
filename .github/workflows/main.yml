@@ -13,20 +13,46 @@ jobs:
       contents: read
 
     steps:
+      #Checkout source code
       - uses: actions/checkout@v4
 
+      #SAST - SonarQube Scan
+      - name: SonarQube Scan (SAST)
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=python-app
+            -Dsonar.sources=.
+            -Dsonar.language=py
+
+      #AWS OIDC Login
       - name: AWS OIDC Login
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      #Login to Amazon ECR
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      #Build Docker Image
       - name: Build Image
         run: docker build -t python-frontend .
 
+      #Trivy Scan (DAST / Image Vulnerability Scan)
+      - name: Trivy Image Scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: python-frontend:latest
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
+      #Push Image to ECR
       - name: Push Image
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -34,8 +60,52 @@ jobs:
           docker tag python-frontend:latest $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
           docker push $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
 
+      #Run Container on EC2
       - name: Run Container
         run: |
           docker stop python-frontend || true
           docker rm python-frontend || true
           docker run -d -p 80:5000 --name python-frontend $ECR_URI:latest
+
+
+# name: Python App CI/CD
+
+# on:
+#   push:
+#     branches: [ main ]
+
+# jobs:
+#   deploy:
+#     runs-on: self-hosted
+
+#     permissions:
+#       id-token: write
+#       contents: read
+
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: AWS OIDC Login
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+#           aws-region: ${{ secrets.AWS_REGION }}
+
+#       - name: Login to ECR
+#         uses: aws-actions/amazon-ecr-login@v2
+
+#       - name: Build Image
+#         run: docker build -t python-frontend .
+
+#       - name: Push Image
+#         run: |
+#           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+#           echo "ECR_URI=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}" >> $GITHUB_ENV
+#           docker tag python-frontend:latest $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+#           docker push $ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+
+#       - name: Run Container
+#         run: |
+#           docker stop python-frontend || true
+#           docker rm python-frontend || true
+#           docker run -d -p 80:5000 --name python-frontend $ECR_URI:latest
