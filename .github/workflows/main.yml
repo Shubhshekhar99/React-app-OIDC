@@ -26,7 +26,6 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=Shubhshekhar99_React-app-OIDC
-            -Dsonar.organization=Shubhshekhar99
             -Dsonar.sources=.
       
       # AWS OIDC Login
