@@ -24,9 +24,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
         with:
-          args: >
-            -Dsonar.projectKey=Shubhshekhar99_React-app-OIDC
-            -Dsonar.sources=.
+          args: "-Dsonar.projectKey=Shubhshekhar99_React-app-OIDC -Dsonar.organization=shubhshekhar99 -Dsonar.sources=."
       
       # AWS OIDC Login
       - name: AWS OIDC Login
