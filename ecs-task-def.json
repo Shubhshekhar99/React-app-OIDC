@@ -1,7 +1,7 @@
 {
   "family": "python-task",
   "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::360477615168:role/ecsTaskExecutionRole1",
   "containerDefinitions": [
     {
       "name": "my-python-app",
