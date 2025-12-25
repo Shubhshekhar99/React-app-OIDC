@@ -50,6 +50,10 @@ jobs:
           service: ${{ secrets.ECS_SERVICE }}
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
           wait-for-service-stability: true
+      
+      - name: Verify Task Definition Exists
+        run: |
+          aws ecs list-task-definitions --family-prefix python-task
 
 # name: Python App CI/CD
 
