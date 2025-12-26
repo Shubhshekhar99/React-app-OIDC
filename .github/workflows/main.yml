@@ -34,12 +34,12 @@ jobs:
           docker tag python-frontend:latest $ECR_URI:latest
           docker push $ECR_URI:latest
 
-      # - name: Deploy to ECS
-      #   run: |
-      #     aws ecs update-service \
-      #       --cluster python-cluster \
-      #       --service python-frontend-service \
-      #       --force-new-deployment
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster python-cluster \
+            --service python-frontend-service \
+            --force-new-deployment
 
 
 # name: Python App CI/CD
