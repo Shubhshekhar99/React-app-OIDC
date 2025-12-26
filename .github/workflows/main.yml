@@ -38,7 +38,7 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster python-cluster \
-            --service python-frontend-service \
+            --service python-task-service-fknc1h7e \
             --force-new-deployment
 
 
