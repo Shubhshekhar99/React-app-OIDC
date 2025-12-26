@@ -1,4 +1,4 @@
-name: Python App CI/CD (ECS Fargate)
+name: Python App CI/CD
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     permissions:
       id-token: write
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: AWS Login (OIDC)
+      - name: AWS OIDC Login
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -24,36 +24,23 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push Image
+      - name: Build Image
+        run: docker build -t python-frontend .
+
+      - name: Push Image
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          IMAGE_URI=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}:latest
+          ECR_URI=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO }}
+          docker tag python-frontend:latest $ECR_URI:latest
+          docker push $ECR_URI:latest
 
-          docker build -t $IMAGE_URI .
-          docker push $IMAGE_URI
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster python-cluster \
+      #       --service python-frontend-service \
+      #       --force-new-deployment
 
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-
-      # 🔑 REQUIRED STEP
-      - name: Render ECS Task Definition
-        id: render-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ecs-task-def.json
-          container-name: my-python-app
-          image: ${{ env.IMAGE_URI }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          cluster: ${{ secrets.ECS_CLUSTER }}
-          service: ${{ secrets.ECS_SERVICE }}
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          wait-for-service-stability: true
-      
-      - name: Verify Task Definition Exists
-        run: |
-          aws ecs list-task-definitions --family-prefix python-task
 
 # name: Python App CI/CD
 
